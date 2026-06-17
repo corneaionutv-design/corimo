@@ -17,7 +17,19 @@
 
   let currentStep = 1;
 
-  function setStep(step, shouldFocus) {
+  function getReferrerHost() {
+    try {
+      return document.referrer ? new URL(document.referrer).hostname : "";
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function isDesktopLayout() {
+    return window.matchMedia("(min-width: 1020px)").matches;
+  }
+
+  function setStep(step, shouldFocus, shouldScroll = true) {
     const safeStep = Math.max(1, Math.min(TOTAL_STEPS, Number(step) || 1));
     currentStep = safeStep;
     body.dataset.step = String(safeStep);
@@ -25,7 +37,7 @@
     panels.forEach((panel) => {
       const isActive = panel.dataset.panel === String(safeStep);
       panel.classList.toggle("is-active", isActive);
-      panel.setAttribute("aria-hidden", isActive ? "false" : "true");
+      panel.setAttribute("aria-hidden", isDesktopLayout() || isActive ? "false" : "true");
     });
 
     if (stickyButton) {
@@ -34,7 +46,7 @@
     }
 
     const targetPanel = document.querySelector(`[data-panel="${safeStep}"]`);
-    if (targetPanel) {
+    if (targetPanel && shouldScroll) {
       targetPanel.scrollIntoView({ behavior: "smooth", block: "start" });
       if (shouldFocus) {
         const focusTarget =
@@ -46,7 +58,7 @@
 
   function getUtmSnapshot() {
     const params = new URLSearchParams(window.location.search);
-    const referrer = document.referrer ? new URL(document.referrer).hostname : "";
+    const referrer = getReferrerHost();
     const utmSource = params.get("utm_source") || "";
     const utmMedium = params.get("utm_medium") || "";
     const utmCampaign = params.get("utm_campaign") || "";
@@ -202,5 +214,7 @@
     window.addEventListener("popstate", populateHiddenFields);
   }
 
-  setStep(1, false);
+  window.addEventListener("resize", () => setStep(currentStep, false, false));
+
+  setStep(1, false, false);
 })();
